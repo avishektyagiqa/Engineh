@@ -1,0 +1,9 @@
+node_modules
+.idea
+playwright-report
+test-results
+allure-report
+allure-results
+.allure
+test-results.json
+.env

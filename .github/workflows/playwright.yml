@@ -1,0 +1,549 @@
+name: Nightly Playwright Test
+
+on:
+  schedule:
+    # 09:30 AM Armenia time (UTC+4) = 05:30 UTC
+    - cron: '27 5 * * *'
+    # 05:30 PM Armenia time (UTC+4) = 13:30 UTC
+    - cron: '27 13 * * *'
+
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: "Commit SHA from triggering repo"
+        required: false
+        type: string
+      env:
+        description: 'Environment to run'
+        required: true
+        type: choice
+        default: 'dev1'
+        options:
+          - dev1
+          - dev2
+          - dev3
+          - dev4
+          - dev5
+          - dev6
+          - dev7
+          - dev8
+          - dev9
+          - dev10
+          - staging
+          - production
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------- DEV ----------------
+  e2e-dev:
+    name: E2E Tests - ${{matrix.env}}
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' && startsWith(github.event.inputs.env, 'dev') }}
+
+    concurrency:
+      group: nightly-playwright-${{ github.ref }}-dev
+      cancel-in-progress: false
+
+    strategy:
+      fail-fast: false
+      matrix:
+        env: ${{ fromJson(format('["{0}"]', github.event.inputs.env)) }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+
+      - name: Create .env from secrets (dev)
+        run: |
+          DEV_ENV="${{matrix.env}}"
+          {
+            echo "APP_ENV=${DEV_ENV}"
+            echo "BASE_URL_STAGING=${{ secrets.BASE_URL_STAGING }}"
+            echo "BASE_URL_PROD=${{ secrets.BASE_URL_PROD }}"
+            echo "BASE_URL_DEV=${{ secrets.BASE_URL_DEV }}"
+            echo "LOGIN_PATH_ID_STAGING=${{ secrets.LOGIN_PATH_ID_STAGING }}"
+            echo "LOGIN_PATH_ID_PROD=${{ secrets.LOGIN_PATH_ID_PROD }}"
+            echo "LOGIN_PATH_ID_DEV=${{ secrets.LOGIN_PATH_ID_DEV }}"
+            echo "AUTOMATION_USER_EMAIL=${{ secrets.AUTOMATION_USER_EMAIL }}"
+            echo "AUTOMATION_USER_PASSWORD=${{ secrets.AUTOMATION_USER_PASSWORD }}"
+            echo "PROD_AUTOMATION_USER_EMAIL=${{ secrets.PROD_AUTOMATION_USER_EMAIL }}"
+            echo "PROD_AUTOMATION_USER_PASSWORD=${{ secrets.PROD_AUTOMATION_USER_PASSWORD }}"
+            echo "DEV_AUTOMATION_USER_EMAIL=${{ secrets.DEV_AUTOMATION_USER_EMAIL }}"
+            echo "DEV_AUTOMATION_USER_PASSWORD=${{ secrets.DEV_AUTOMATION_USER_PASSWORD }}"
+            echo "ISAR_EMAIL=${{ secrets.ISAR_EMAIL }}"
+            echo "ISAR_PASSWORD=${{ secrets.ISAR_PASSWORD }}"
+            echo "ARMEN_EMAIL=${{ secrets.ARMEN_EMAIL }}"
+            echo "ARMEN_PASSWORD=${{ secrets.ARMEN_PASSWORD }}"
+            echo "STAGING_AUTOMATION_USER=${{ secrets.STAGING_AUTOMATION_USER }}"
+            echo "STAGING_AUTOMATION_PASSWORD=${{ secrets.STAGING_AUTOMATION_PASSWORD }}"
+          } > .env
+          
+          case "$DEV_ENV" in
+            dev1)
+              echo "DEV1_URL_FRONTEND=${{ secrets.DEV1_URL_FRONTEND }}" >> .env
+              echo "DEV1_URL_BACKEND=${{ secrets.DEV1_URL_BACKEND }}" >> .env
+              ;;
+            dev2)
+              echo "DEV2_URL_FRONTEND=${{ secrets.DEV2_URL_FRONTEND }}" >> .env
+              echo "DEV2_URL_BACKEND=${{ secrets.DEV2_URL_BACKEND }}" >> .env
+              ;;
+            dev3)
+              echo "DEV3_URL_FRONTEND=${{ secrets.DEV3_URL_FRONTEND }}" >> .env
+              echo "DEV3_URL_BACKEND=${{ secrets.DEV3_URL_BACKEND }}" >> .env
+              ;;
+            dev4)
+              echo "DEV4_URL_FRONTEND=${{ secrets.DEV4_URL_FRONTEND }}" >> .env
+              echo "DEV4_URL_BACKEND=${{ secrets.DEV4_URL_BACKEND }}" >> .env
+              ;;
+            dev5)
+              echo "DEV5_URL_FRONTEND=${{ secrets.DEV5_URL_FRONTEND }}" >> .env
+              echo "DEV5_URL_BACKEND=${{ secrets.DEV5_URL_BACKEND }}" >> .env
+              ;;
+            dev6)
+              echo "DEV6_URL_FRONTEND=${{ secrets.DEV6_URL_FRONTEND }}" >> .env
+              echo "DEV6_URL_BACKEND=${{ secrets.DEV6_URL_BACKEND }}" >> .env
+              ;;
+            dev7)
+              echo "DEV7_URL_FRONTEND=${{ secrets.DEV7_URL_FRONTEND }}" >> .env
+              echo "DEV7_URL_BACKEND=${{ secrets.DEV7_URL_BACKEND }}" >> .env
+              ;;
+            dev8)
+              echo "DEV8_URL_FRONTEND=${{ secrets.DEV8_URL_FRONTEND }}" >> .env
+              echo "DEV8_URL_BACKEND=${{ secrets.DEV8_URL_BACKEND }}" >> .env
+              ;;
+          dev9)
+              echo "DEV8_URL_FRONTEND=${{ secrets.DEV9_URL_FRONTEND }}" >> .env
+              echo "DEV8_URL_BACKEND=${{ secrets.DEV9_URL_BACKEND }}" >> .env
+              ;;
+          dev10)
+              echo "DEV8_URL_FRONTEND=${{ secrets.DEV10_URL_FRONTEND }}" >> .env
+              echo "DEV8_URL_BACKEND=${{ secrets.DEV10_URL_BACKEND }}" >> .env
+              ;;
+            *)
+              echo "Unknown dev env: $DEV_ENV"; exit 1;;
+          esac
+
+      - name: List tests (dev)
+        env:
+          APP_ENV: ${{ matrix.env }}
+        run: npx playwright test --project="${{ matrix.env }} - chromium" --list
+
+
+      - name: Run Playwright Tests (dev)
+        id: tests
+        continue-on-error: true
+        env:
+          APP_ENV: ${{matrix.env}}
+        run: npx playwright test --project="${{ matrix.env }} - chromium" --workers=1
+
+      - name: Generate Allure Report (dev)
+        if: ${{ always() }}
+        run: |
+          set -e
+          mkdir -p allure-results
+          find test-results -name '*.png' -exec cp {} allure-results/ \; || true
+          rm -rf allure-report
+          npx allure generate allure-results -o allure-report
+          test -f allure-report/index.html || { echo "::error::allure-report/index.html is missing"; exit 1; }
+
+      - name: Upload Allure Report (dev)
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report-${{matrix.env}}
+          path: allure-report
+
+      - name: Deploy Allure Report to Netlify (dev)
+        if: ${{ always() }}
+        id: deploy
+        run: |
+          set -eo pipefail
+          sudo apt-get update -y
+          sudo apt-get install -y jq
+          npm install -g netlify-cli
+          
+          alias="dev-allure-${{ matrix.env }}-${{ github.run_id }}"
+
+          json=$(netlify deploy \
+            --dir=allure-report \
+            --alias "$alias" \
+            --auth 'nfp_ibp9pTwG215E6RoJievHJRt81qTczRTo7d92' \
+            --site 'cf24a97c-2780-4c22-8edf-94dc66fe1fab' \
+            --json || true)
+
+          echo "$json" | jq . || true
+
+          url=$(echo "$json" | jq -r '.url // .deploy_url // .links.permalink // empty')
+
+          if [ -z "$url" ]; then
+            site_name=$(echo "$json" | jq -r '.site_name // empty')
+            if [ -n "$site_name" ]; then
+              url="https://${alias}--${site_name}.netlify.app"
+            fi
+          fi
+
+          echo "report_url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Get Test Summary (dev)
+        if: ${{ always() }}
+        id: summary
+        run: |
+          file="test-results.json"
+          [ -f "$file" ] || file="test-results/test-results.json"
+          if [ -f "$file" ]; then
+            passed=$(jq '.stats.expected // 0' "$file")
+            failed=$(jq '.stats.unexpected // 0' "$file")
+          else
+            passed=0; failed=0
+          fi
+          echo "passed=$passed" >> "$GITHUB_OUTPUT"
+          echo "failed=$failed" >> "$GITHUB_OUTPUT"
+
+      - name: Slack Notification (dev)
+        if: ${{ always() }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          NETLIFY_SITE_URL: ${{ steps.deploy.outputs.report_url }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+        run: |
+          REPORT_LINK="${NETLIFY_SITE_URL:-$RUN_URL}"
+
+          if [ "${{ steps.tests.outcome }}" = "success" ]; then
+            status_emoji=":white_check_mark:"; status_text="PASSED"
+            MENTION=""
+          else
+            status_emoji=":x:"; status_text="FAILED"
+            MENTION="<@U091YLYTRBJ> — please check!\n\n"
+          fi
+
+          curl -sS -X POST -H "Content-type: application/json" --data @- "$SLACK_WEBHOOK_URL" <<EOF
+          {
+            "username": "Dev Test Status",
+            "icon_url": "https://enginehireio-static-and-media8.s3.amazonaws.com/media/files/enginehire_icon_1.1_e098b3dc-7edb-4e4c-b69a-69975474bfb6.png",
+            "text": "*${status_emoji} ${{matrix.env}} ${ENV_NAME} tests ${status_text}*\n\n*Branch:* \`${BRANCH_NAME}\`\n*Commit:* \`${COMMIT_SHA}\`\n:white_check_mark: *Passed:* \`${{ steps.summary.outputs.passed }}\`\n:x: *Failed:* \`${{ steps.summary.outputs.failed }}\`\n\n📊 *Allure Report:* <${REPORT_LINK}|Open Allure report>\n🔗 *Run:* <${RUN_URL}|Open workflow run>"
+          }
+          EOF
+
+
+  # ---------------- STAGING ----------------
+  e2e-staging:
+    name: E2E Tests - staging
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.env == 'staging') }}
+
+    concurrency:
+      group: nightly-playwright-${{ github.ref }}-staging
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+
+      - name: Verify gating secrets (staging)
+        run: |
+          [ -n "${{ secrets.TEST_RUN_API_BASE }}" ] || { echo "::error::TEST_RUN_API_BASE is missing"; exit 1; }
+          [ -n "${{ secrets.TEST_RUN_API_TOKEN }}" ] || { echo "::error::TEST_RUN_API_TOKEN is missing"; exit 1; }
+
+      - name: Create .env from secrets (staging)
+        run: |
+          {
+            echo "APP_ENV=staging"
+            echo "BASE_URL_STAGING=${{ secrets.BASE_URL_STAGING }}"
+            echo "BASE_URL_PROD=${{ secrets.BASE_URL_PROD }}"
+            echo "BASE_URL_DEV=${{ secrets.BASE_URL_DEV }}"
+            echo "LOGIN_PATH_ID_STAGING=${{ secrets.LOGIN_PATH_ID_STAGING }}"
+            echo "LOGIN_PATH_ID_PROD=${{ secrets.LOGIN_PATH_ID_PROD }}"
+            echo "LOGIN_PATH_ID_DEV=${{ secrets.LOGIN_PATH_ID_DEV }}"
+            echo "AUTOMATION_USER_EMAIL=${{ secrets.AUTOMATION_USER_EMAIL }}"
+            echo "AUTOMATION_USER_PASSWORD=${{ secrets.AUTOMATION_USER_PASSWORD }}"
+            echo "PROD_AUTOMATION_USER_EMAIL=${{ secrets.PROD_AUTOMATION_USER_EMAIL }}"
+            echo "PROD_AUTOMATION_USER_PASSWORD=${{ secrets.PROD_AUTOMATION_USER_PASSWORD }}"
+            echo "DEV_AUTOMATION_USER_EMAIL=${{ secrets.DEV_AUTOMATION_USER_EMAIL }}"
+            echo "DEV_AUTOMATION_USER_PASSWORD=${{ secrets.DEV_AUTOMATION_USER_PASSWORD }}"
+            echo "ISAR_EMAIL=${{ secrets.ISAR_EMAIL }}"
+            echo "ISAR_PASSWORD=${{ secrets.ISAR_PASSWORD }}"
+            echo "ARMEN_EMAIL=${{ secrets.ARMEN_EMAIL }}"
+            echo "ARMEN_PASSWORD=${{ secrets.ARMEN_PASSWORD }}"
+            echo "STAGING_AUTOMATION_USER=${{ secrets.STAGING_AUTOMATION_USER }}"
+            echo "STAGING_AUTOMATION_PASSWORD=${{ secrets.STAGING_AUTOMATION_PASSWORD }}"
+            echo "TEST_RUN_API_BASE=${{ secrets.TEST_RUN_API_BASE }}"
+            echo "TEST_RUN_API_TOKEN=${{ secrets.TEST_RUN_API_TOKEN }}"
+          } > .env
+
+      - name: Run Playwright Tests (staging)
+        id: tests
+        continue-on-error: true
+        env:
+          APP_ENV: staging
+          TEST_RUN_API_BASE: ${{ secrets.TEST_RUN_API_BASE }}
+          TEST_RUN_API_TOKEN: ${{ secrets.TEST_RUN_API_TOKEN }}
+        run: npx playwright test --project="staging - chromium" --workers=1
+
+      - name: Generate Allure Report (staging)
+        if: ${{ always() }}
+        run: |
+          set -e
+          mkdir -p allure-results
+          find test-results -name '*.png' -exec cp {} allure-results/ \; || true
+          rm -rf allure-report
+          npx allure generate allure-results -o allure-report
+          test -f allure-report/index.html || { echo "::error::allure-report/index.html is missing"; exit 1; }
+
+      - name: Upload Allure Report (staging)
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report-staging
+          path: allure-report
+
+      - name: Deploy Allure Report to Netlify (staging)
+        if: ${{ always() }}
+        id: deploy
+        run: |
+          set -eo pipefail
+          sudo apt-get update -y
+          sudo apt-get install -y jq
+          npm install -g netlify-cli
+
+          json=$(netlify deploy \
+            --dir=allure-report \
+            --alias "staging-allure" \
+            --auth 'nfp_ibp9pTwG215E6RoJievHJRt81qTczRTo7d92' \
+            --site 'cf24a97c-2780-4c22-8edf-94dc66fe1fab' \
+            --json || true)
+
+          echo "$json" | jq . || true
+
+          url=$(echo "$json" | jq -r '.url // .deploy_url // .links.permalink // empty')
+
+          if [ -z "$url" ]; then
+            site_name=$(echo "$json" | jq -r '.site_name // empty')
+            if [ -n "$site_name" ]; then
+              url="https://staging-allure--${site_name}.netlify.app"
+            fi
+          fi
+
+          echo "report_url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Get Test Summary (staging)
+        if: ${{ always() }}
+        id: summary
+        run: |
+          file="test-results.json"
+          [ -f "$file" ] || file="test-results/test-results.json"
+          if [ -f "$file" ]; then
+            passed=$(jq '.stats.expected // 0' "$file")
+            failed=$(jq '.stats.unexpected // 0' "$file")
+          else
+            passed=0; failed=0
+          fi
+          echo "passed=$passed" >> "$GITHUB_OUTPUT"
+          echo "failed=$failed" >> "$GITHUB_OUTPUT"
+
+      - name: Slack Notification (staging)
+        if: ${{ always() }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          NETLIFY_SITE_URL: ${{ steps.deploy.outputs.report_url }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+        run: |
+          REPORT_LINK="${NETLIFY_SITE_URL:-$RUN_URL}"
+
+          if [ "${{ steps.tests.outcome }}" = "success" ]; then
+            status_emoji=":white_check_mark:"; status_text="PASSED"
+            MENTION=""
+          else
+            status_emoji=":x:"; status_text="FAILED"
+            MENTION="<@U091YLYTRBJ> — please check!\n\n"
+          fi
+
+          curl -sS -X POST -H "Content-type: application/json" --data @- "$SLACK_WEBHOOK_URL" <<EOF
+          {
+            "username": "Staging Test Status",
+            "icon_url": "https://enginehireio-static-and-media8.s3.amazonaws.com/media/files/enginehire_icon_1.1_e098b3dc-7edb-4e4c-b69a-69975474bfb6.png",
+            "text": "${MENTION}*${status_emoji} staging tests ${status_text}*\n\n*Branch:* \`${BRANCH_NAME}\`\n:white_check_mark: *Passed:* \`${{ steps.summary.outputs.passed }}\`\n:x: *Failed:* \`${{ steps.summary.outputs.failed }}\`\n\n:bar_chart: *Allure Report:* <${REPORT_LINK}|Open Allure report>\n:link: *Run:* <${RUN_URL}|Open workflow run>"
+          }
+          EOF
+
+
+  # ---------------- PRODUCTION ----------------
+  e2e-prod:
+    name: E2E Tests - production
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.env == 'production') }}
+
+    concurrency:
+      group: nightly-playwright-${{ github.ref }}-prod
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+
+      - name: Verify gating secrets (production)
+        run: |
+          [ -n "${{ secrets.TEST_RUN_API_BASE }}" ] || { echo "::error::TEST_RUN_API_BASE is missing"; exit 1; }
+          [ -n "${{ secrets.TEST_RUN_API_TOKEN }}" ] || { echo "::error::TEST_RUN_API_TOKEN is missing"; exit 1; }
+
+      - name: Create .env from secrets (production)
+        run: |
+          {
+            echo "APP_ENV=production"
+            echo "BASE_URL_STAGING=${{ secrets.BASE_URL_STAGING }}"
+            echo "BASE_URL_PROD=${{ secrets.BASE_URL_PROD }}"
+            echo "BASE_URL_DEV=${{ secrets.BASE_URL_DEV }}"
+            echo "LOGIN_PATH_ID_STAGING=${{ secrets.LOGIN_PATH_ID_STAGING }}"
+            echo "LOGIN_PATH_ID_PROD=${{ secrets.LOGIN_PATH_ID_PROD }}"
+            echo "LOGIN_PATH_ID_DEV=${{ secrets.LOGIN_PATH_ID_DEV }}"
+            echo "AUTOMATION_USER_EMAIL=${{ secrets.AUTOMATION_USER_EMAIL }}"
+            echo "AUTOMATION_USER_PASSWORD=${{ secrets.AUTOMATION_USER_PASSWORD }}"
+            echo "PROD_AUTOMATION_USER_EMAIL=${{ secrets.PROD_AUTOMATION_USER_EMAIL }}"
+            echo "PROD_AUTOMATION_USER_PASSWORD=${{ secrets.PROD_AUTOMATION_USER_PASSWORD }}"
+            echo "DEV_AUTOMATION_USER_EMAIL=${{ secrets.DEV_AUTOMATION_USER_EMAIL }}"
+            echo "DEV_AUTOMATION_USER_PASSWORD=${{ secrets.DEV_AUTOMATION_USER_PASSWORD }}"
+            echo "ISAR_EMAIL=${{ secrets.ISAR_EMAIL }}"
+            echo "ISAR_PASSWORD=${{ secrets.ISAR_PASSWORD }}"
+            echo "ARMEN_EMAIL=${{ secrets.ARMEN_EMAIL }}"
+            echo "ARMEN_PASSWORD=${{ secrets.ARMEN_PASSWORD }}"
+            echo "STAGING_AUTOMATION_USER=${{ secrets.STAGING_AUTOMATION_USER }}"
+            echo "STAGING_AUTOMATION_PASSWORD=${{ secrets.STAGING_AUTOMATION_PASSWORD }}"
+            echo "TEST_RUN_API_BASE=${{ secrets.TEST_RUN_API_BASE }}"
+            echo "TEST_RUN_API_TOKEN=${{ secrets.TEST_RUN_API_TOKEN }}"
+          } > .env
+
+      - name: Run Playwright Tests (production)
+        id: tests
+        continue-on-error: true
+        env:
+          APP_ENV: production
+          TEST_RUN_API_BASE: ${{ secrets.TEST_RUN_API_BASE }}
+          TEST_RUN_API_TOKEN: ${{ secrets.TEST_RUN_API_TOKEN }}
+        run: npx playwright test --project="production - chromium" --workers=1
+
+      - name: Generate Allure Report (production)
+        if: ${{ always() }}
+        run: |
+          set -e
+          mkdir -p allure-results
+          find test-results -name '*.png' -exec cp {} allure-results/ \; || true
+          rm -rf allure-report
+          npx allure generate allure-results -o allure-report
+          test -f allure-report/index.html || { echo "::error::allure-report/index.html is missing"; exit 1; }
+
+      - name: Upload Allure Report (production)
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report-prod
+          path: allure-report
+
+      - name: Deploy Allure Report to Netlify (production)
+        if: ${{ always() }}
+        id: deploy
+        run: |
+          set -eo pipefail
+          sudo apt-get update -y
+          sudo apt-get install -y jq
+          npm install -g netlify-cli
+
+          json=$(netlify deploy \
+            --dir=allure-report \
+            --alias "prod-allure" \
+            --auth 'nfp_ibp9pTwG215E6RoJievHJRt81qTczRTo7d92' \
+            --site 'cf24a97c-2780-4c22-8edf-94dc66fe1fab' \
+            --json || true)
+
+          echo "$json" | jq . || true
+
+          url=$(echo "$json" | jq -r '.url // .deploy_url // .links.permalink // empty')
+
+          if [ -z "$url" ]; then
+            site_name=$(echo "$json" | jq -r '.site_name // empty')
+            if [ -n "$site_name" ]; then
+              url="https://prod-allure--${site_name}.netlify.app"
+            fi
+          fi
+
+          echo "report_url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Get Test Summary (production)
+        if: ${{ always() }}
+        id: summary
+        run: |
+          file="test-results.json"
+          [ -f "$file" ] || file="test-results/test-results.json"
+          if [ -f "$file" ]; then
+            passed=$(jq '.stats.expected // 0' "$file")
+            failed=$(jq '.stats.unexpected // 0' "$file")
+          else
+            passed=0; failed=0
+          fi
+          echo "passed=$passed" >> "$GITHUB_OUTPUT"
+          echo "failed=$failed" >> "$GITHUB_OUTPUT"
+
+      - name: Slack Notification (production)
+        if: ${{ always() }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          NETLIFY_SITE_URL: ${{ steps.deploy.outputs.report_url }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+        run: |
+          REPORT_LINK="${NETLIFY_SITE_URL:-$RUN_URL}"
+
+          if [ "${{ steps.tests.outcome }}" = "success" ]; then
+            status_emoji=":white_check_mark:"; status_text="PASSED"
+            MENTION=""
+          else
+            status_emoji=":x:"; status_text="FAILED"
+            MENTION="<@U091YLYTRBJ> — please check!\n\n"
+          fi
+
+          curl -sS -X POST -H "Content-type: application/json" --data @- "$SLACK_WEBHOOK_URL" <<EOF
+          {
+            "username": "Production Test Status",
+            "icon_url": "https://enginehireio-static-and-media8.s3.amazonaws.com/media/files/enginehire_icon_1.1_e098b3dc-7edb-4e4c-b69a-69975474bfb6.png",
+            "text": "${MENTION}*${status_emoji} production tests ${status_text}*\n\n*Branch:* \`${BRANCH_NAME}\`\n:white_check_mark: *Passed:* \`${{ steps.summary.outputs.passed }}\`\n:x: *Failed:* \`${{ steps.summary.outputs.failed }}\`\n\n:bar_chart: *Allure Report:* <${REPORT_LINK}|Open Allure report>\n:link: *Run:* <${RUN_URL}|Open workflow run>"
+          }
+          EOF

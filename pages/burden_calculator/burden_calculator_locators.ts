@@ -1,0 +1,23 @@
+export const BurdenCalculatorLocators = {
+    gearIcon:'[data-test-id="settings-icon"]',
+    calculatorNameSection: 'div[data-test-id="text-box-with-label-advance_setting.burden_name"]',
+    calculatorNameField: 'input[data-test-id="text-box-with-label-advance_setting.burden_name"]',
+    calcTitle: '[class="calculator-title"]',
+    modalCancelButton: '[data-test-id="cancel-button"]',
+    selectTemplateDropdown: '[class="template-selector-row"]',
+    calculationModeDropdown:'(//select[@class="field-select"])[2]',
+    billRate: '(//input[@class="input-field padded-input"])[1]',
+    staffPay: '(//input[@class="input-field padded-input"])[2]',
+    GsaRate: '[placeholder="Enter GSA rate"]',
+    addSectionButton: '[class="add-button"]',
+    fieldValue: 'input[placeholder="Value"]',
+    multiplyFieldsName: 'input[placeholder="Name (e.g., Overhead Factor)"]',
+    calculateButton: '[class="calculate-button"]',
+    calculateSaveBillButton: '[class="save-bill-button"]',
+    calculateSaveTemplateButton: '[class="save-template-button"]',
+    templateName: '[placeholder="e.g. CA Nurses - Standard"]',
+    saveTemplateButton: '[class="save-button"]',
+    deleteTemplate: '[class="delete-template-button"]',
+    calculateBillTemplateButton: '[class="save-bill-template-button"]',
+    viewHistoryButton: '[class="view-history-button"]'
+};

@@ -1,0 +1,2 @@
+- [User Role](user_role.md) — QA engineer on EngineHire Playwright/TypeScript framework, expects strict pattern adherence
+- [Assertion Patterns — toContainText vs toHaveValue](feedback_test_assertions.md) — existing to-do helper has buggy toHaveValue on non-input; new tests must use toContainText
