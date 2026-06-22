@@ -3,9 +3,9 @@ name: Nightly Playwright Test
 on:
   schedule:
     # 09:30 AM Armenia time (UTC+4) = 05:30 UTC
-    - cron: '27 5 * * *'
+    - cron: "27 5 * * *"
     # 05:30 PM Armenia time (UTC+4) = 13:30 UTC
-    - cron: '27 13 * * *'
+    - cron: "27 13 * * *"
 
   workflow_dispatch:
     inputs:
@@ -14,10 +14,10 @@ on:
         required: false
         type: string
       env:
-        description: 'Environment to run'
+        description: "Environment to run"
         required: true
         type: choice
-        default: 'dev1'
+        default: "dev1"
         options:
           - dev1
           - dev2
@@ -55,7 +55,6 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -92,7 +91,7 @@ jobs:
             echo "STAGING_AUTOMATION_USER=${{ secrets.STAGING_AUTOMATION_USER }}"
             echo "STAGING_AUTOMATION_PASSWORD=${{ secrets.STAGING_AUTOMATION_PASSWORD }}"
           } > .env
-          
+
           case "$DEV_ENV" in
             dev1)
               echo "DEV1_URL_FRONTEND=${{ secrets.DEV1_URL_FRONTEND }}" >> .env
@@ -143,7 +142,6 @@ jobs:
           APP_ENV: ${{ matrix.env }}
         run: npx playwright test --project="${{ matrix.env }} - chromium" --list
 
-
       - name: Run Playwright Tests (dev)
         id: tests
         continue-on-error: true
@@ -176,7 +174,7 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install -y jq
           npm install -g netlify-cli
-          
+
           alias="dev-allure-${{ matrix.env }}-${{ github.run_id }}"
 
           json=$(netlify deploy \
@@ -213,33 +211,6 @@ jobs:
           fi
           echo "passed=$passed" >> "$GITHUB_OUTPUT"
           echo "failed=$failed" >> "$GITHUB_OUTPUT"
-
-      - name: Slack Notification (dev)
-        if: ${{ always() }}
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          NETLIFY_SITE_URL: ${{ steps.deploy.outputs.report_url }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
-        run: |
-          REPORT_LINK="${NETLIFY_SITE_URL:-$RUN_URL}"
-
-          if [ "${{ steps.tests.outcome }}" = "success" ]; then
-            status_emoji=":white_check_mark:"; status_text="PASSED"
-            MENTION=""
-          else
-            status_emoji=":x:"; status_text="FAILED"
-            MENTION="<@U091YLYTRBJ> — please check!\n\n"
-          fi
-
-          curl -sS -X POST -H "Content-type: application/json" --data @- "$SLACK_WEBHOOK_URL" <<EOF
-          {
-            "username": "Dev Test Status",
-            "icon_url": "https://enginehireio-static-and-media8.s3.amazonaws.com/media/files/enginehire_icon_1.1_e098b3dc-7edb-4e4c-b69a-69975474bfb6.png",
-            "text": "*${status_emoji} ${{matrix.env}} ${ENV_NAME} tests ${status_text}*\n\n*Branch:* \`${BRANCH_NAME}\`\n*Commit:* \`${COMMIT_SHA}\`\n:white_check_mark: *Passed:* \`${{ steps.summary.outputs.passed }}\`\n:x: *Failed:* \`${{ steps.summary.outputs.failed }}\`\n\n📊 *Allure Report:* <${REPORT_LINK}|Open Allure report>\n🔗 *Run:* <${RUN_URL}|Open workflow run>"
-          }
-          EOF
-
 
   # ---------------- STAGING ----------------
   e2e-staging:
@@ -368,33 +339,6 @@ jobs:
           echo "passed=$passed" >> "$GITHUB_OUTPUT"
           echo "failed=$failed" >> "$GITHUB_OUTPUT"
 
-      - name: Slack Notification (staging)
-        if: ${{ always() }}
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          NETLIFY_SITE_URL: ${{ steps.deploy.outputs.report_url }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
-        run: |
-          REPORT_LINK="${NETLIFY_SITE_URL:-$RUN_URL}"
-
-          if [ "${{ steps.tests.outcome }}" = "success" ]; then
-            status_emoji=":white_check_mark:"; status_text="PASSED"
-            MENTION=""
-          else
-            status_emoji=":x:"; status_text="FAILED"
-            MENTION="<@U091YLYTRBJ> — please check!\n\n"
-          fi
-
-          curl -sS -X POST -H "Content-type: application/json" --data @- "$SLACK_WEBHOOK_URL" <<EOF
-          {
-            "username": "Staging Test Status",
-            "icon_url": "https://enginehireio-static-and-media8.s3.amazonaws.com/media/files/enginehire_icon_1.1_e098b3dc-7edb-4e4c-b69a-69975474bfb6.png",
-            "text": "${MENTION}*${status_emoji} staging tests ${status_text}*\n\n*Branch:* \`${BRANCH_NAME}\`\n:white_check_mark: *Passed:* \`${{ steps.summary.outputs.passed }}\`\n:x: *Failed:* \`${{ steps.summary.outputs.failed }}\`\n\n:bar_chart: *Allure Report:* <${REPORT_LINK}|Open Allure report>\n:link: *Run:* <${RUN_URL}|Open workflow run>"
-          }
-          EOF
-
-
   # ---------------- PRODUCTION ----------------
   e2e-prod:
     name: E2E Tests - production
@@ -521,29 +465,3 @@ jobs:
           fi
           echo "passed=$passed" >> "$GITHUB_OUTPUT"
           echo "failed=$failed" >> "$GITHUB_OUTPUT"
-
-      - name: Slack Notification (production)
-        if: ${{ always() }}
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          NETLIFY_SITE_URL: ${{ steps.deploy.outputs.report_url }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
-        run: |
-          REPORT_LINK="${NETLIFY_SITE_URL:-$RUN_URL}"
-
-          if [ "${{ steps.tests.outcome }}" = "success" ]; then
-            status_emoji=":white_check_mark:"; status_text="PASSED"
-            MENTION=""
-          else
-            status_emoji=":x:"; status_text="FAILED"
-            MENTION="<@U091YLYTRBJ> — please check!\n\n"
-          fi
-
-          curl -sS -X POST -H "Content-type: application/json" --data @- "$SLACK_WEBHOOK_URL" <<EOF
-          {
-            "username": "Production Test Status",
-            "icon_url": "https://enginehireio-static-and-media8.s3.amazonaws.com/media/files/enginehire_icon_1.1_e098b3dc-7edb-4e4c-b69a-69975474bfb6.png",
-            "text": "${MENTION}*${status_emoji} production tests ${status_text}*\n\n*Branch:* \`${BRANCH_NAME}\`\n:white_check_mark: *Passed:* \`${{ steps.summary.outputs.passed }}\`\n:x: *Failed:* \`${{ steps.summary.outputs.failed }}\`\n\n:bar_chart: *Allure Report:* <${REPORT_LINK}|Open Allure report>\n:link: *Run:* <${RUN_URL}|Open workflow run>"
-          }
-          EOF
