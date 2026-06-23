@@ -147,7 +147,7 @@ jobs:
         continue-on-error: true
         env:
           APP_ENV: ${{matrix.env}}
-        run: npx playwright test --project="${{ matrix.env }} - chromium" --workers=1
+        run: npx playwright test --project="${{ matrix.env }} - chromium" --workers=5
 
       - name: Generate Allure Report (dev)
         if: ${{ always() }}
@@ -198,133 +198,6 @@ jobs:
           echo "report_url=$url" >> "$GITHUB_OUTPUT"
 
       - name: Get Test Summary (dev)
-        if: ${{ always() }}
-        id: summary
-        run: |
-          file="test-results.json"
-          [ -f "$file" ] || file="test-results/test-results.json"
-          if [ -f "$file" ]; then
-            passed=$(jq '.stats.expected // 0' "$file")
-            failed=$(jq '.stats.unexpected // 0' "$file")
-          else
-            passed=0; failed=0
-          fi
-          echo "passed=$passed" >> "$GITHUB_OUTPUT"
-          echo "failed=$failed" >> "$GITHUB_OUTPUT"
-
-  # ---------------- STAGING ----------------
-  e2e-staging:
-    name: E2E Tests - staging
-    runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.env == 'staging') }}
-
-    concurrency:
-      group: nightly-playwright-${{ github.ref }}-staging
-      cancel-in-progress: false
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-
-      - name: Install Dependencies
-        run: npm ci
-
-      - name: Install Playwright Browsers
-        run: npx playwright install --with-deps
-
-      - name: Verify gating secrets (staging)
-        run: |
-          [ -n "${{ secrets.TEST_RUN_API_BASE }}" ] || { echo "::error::TEST_RUN_API_BASE is missing"; exit 1; }
-          [ -n "${{ secrets.TEST_RUN_API_TOKEN }}" ] || { echo "::error::TEST_RUN_API_TOKEN is missing"; exit 1; }
-
-      - name: Create .env from secrets (staging)
-        run: |
-          {
-            echo "APP_ENV=staging"
-            echo "BASE_URL_STAGING=${{ secrets.BASE_URL_STAGING }}"
-            echo "BASE_URL_PROD=${{ secrets.BASE_URL_PROD }}"
-            echo "BASE_URL_DEV=${{ secrets.BASE_URL_DEV }}"
-            echo "LOGIN_PATH_ID_STAGING=${{ secrets.LOGIN_PATH_ID_STAGING }}"
-            echo "LOGIN_PATH_ID_PROD=${{ secrets.LOGIN_PATH_ID_PROD }}"
-            echo "LOGIN_PATH_ID_DEV=${{ secrets.LOGIN_PATH_ID_DEV }}"
-            echo "AUTOMATION_USER_EMAIL=${{ secrets.AUTOMATION_USER_EMAIL }}"
-            echo "AUTOMATION_USER_PASSWORD=${{ secrets.AUTOMATION_USER_PASSWORD }}"
-            echo "PROD_AUTOMATION_USER_EMAIL=${{ secrets.PROD_AUTOMATION_USER_EMAIL }}"
-            echo "PROD_AUTOMATION_USER_PASSWORD=${{ secrets.PROD_AUTOMATION_USER_PASSWORD }}"
-            echo "DEV_AUTOMATION_USER_EMAIL=${{ secrets.DEV_AUTOMATION_USER_EMAIL }}"
-            echo "DEV_AUTOMATION_USER_PASSWORD=${{ secrets.DEV_AUTOMATION_USER_PASSWORD }}"
-            echo "ISAR_EMAIL=${{ secrets.ISAR_EMAIL }}"
-            echo "ISAR_PASSWORD=${{ secrets.ISAR_PASSWORD }}"
-            echo "ARMEN_EMAIL=${{ secrets.ARMEN_EMAIL }}"
-            echo "ARMEN_PASSWORD=${{ secrets.ARMEN_PASSWORD }}"
-            echo "STAGING_AUTOMATION_USER=${{ secrets.STAGING_AUTOMATION_USER }}"
-            echo "STAGING_AUTOMATION_PASSWORD=${{ secrets.STAGING_AUTOMATION_PASSWORD }}"
-            echo "TEST_RUN_API_BASE=${{ secrets.TEST_RUN_API_BASE }}"
-            echo "TEST_RUN_API_TOKEN=${{ secrets.TEST_RUN_API_TOKEN }}"
-          } > .env
-
-      - name: Run Playwright Tests (staging)
-        id: tests
-        continue-on-error: true
-        env:
-          APP_ENV: staging
-          TEST_RUN_API_BASE: ${{ secrets.TEST_RUN_API_BASE }}
-          TEST_RUN_API_TOKEN: ${{ secrets.TEST_RUN_API_TOKEN }}
-        run: npx playwright test --project="staging - chromium" --workers=1
-
-      - name: Generate Allure Report (staging)
-        if: ${{ always() }}
-        run: |
-          set -e
-          mkdir -p allure-results
-          find test-results -name '*.png' -exec cp {} allure-results/ \; || true
-          rm -rf allure-report
-          npx allure generate allure-results -o allure-report
-          test -f allure-report/index.html || { echo "::error::allure-report/index.html is missing"; exit 1; }
-
-      - name: Upload Allure Report (staging)
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: allure-report-staging
-          path: allure-report
-
-      - name: Deploy Allure Report to Netlify (staging)
-        if: ${{ always() }}
-        id: deploy
-        run: |
-          set -eo pipefail
-          sudo apt-get update -y
-          sudo apt-get install -y jq
-          npm install -g netlify-cli
-
-          json=$(netlify deploy \
-            --dir=allure-report \
-            --alias "staging-allure" \
-            --auth 'nfp_ibp9pTwG215E6RoJievHJRt81qTczRTo7d92' \
-            --site 'cf24a97c-2780-4c22-8edf-94dc66fe1fab' \
-            --json || true)
-
-          echo "$json" | jq . || true
-
-          url=$(echo "$json" | jq -r '.url // .deploy_url // .links.permalink // empty')
-
-          if [ -z "$url" ]; then
-            site_name=$(echo "$json" | jq -r '.site_name // empty')
-            if [ -n "$site_name" ]; then
-              url="https://staging-allure--${site_name}.netlify.app"
-            fi
-          fi
-
-          echo "report_url=$url" >> "$GITHUB_OUTPUT"
-
-      - name: Get Test Summary (staging)
         if: ${{ always() }}
         id: summary
         run: |
@@ -403,7 +276,7 @@ jobs:
           APP_ENV: production
           TEST_RUN_API_BASE: ${{ secrets.TEST_RUN_API_BASE }}
           TEST_RUN_API_TOKEN: ${{ secrets.TEST_RUN_API_TOKEN }}
-        run: npx playwright test --project="production - chromium" --workers=1
+        run: npx playwright test --project="production - chromium" --workers=5
 
       - name: Generate Allure Report (production)
         if: ${{ always() }}

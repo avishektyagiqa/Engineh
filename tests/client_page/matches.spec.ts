@@ -167,7 +167,7 @@ test.describe("Client Matches", () => {
             "test advamce do not delete"
         );
 
-        await clientPage.clickOnClientPage("test advamce do not delete");
+        await clientPage.clickOnClientPage("test advance do not delete");
 
         // Navigate to matches tab
         await matchesPage.clickOnAdminTab();
@@ -228,7 +228,7 @@ test.describe("Client Matches", () => {
             "test advamce do not delete"
         );
 
-        await clientPage.clickOnClientPage("test advamce do not delete");
+        await clientPage.clickOnClientPage("test advance do not delete");
 
         // Navigate to matches tab
         await matchesPage.clickOnAdminTab();

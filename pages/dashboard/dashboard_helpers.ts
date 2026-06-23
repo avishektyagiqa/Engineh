@@ -23,7 +23,7 @@ export default class DashboardHelpers extends BasePage {
     }
 
     async selectSectionFromDashboard(sectionName: string){
-        const dashboardSection = this.page.locator('.collapse.navbar-collapse ul span  span', {
+        const dashboardSection = this.page.locator('.nav-link .nav-link-container .nav-link-label', {
             hasText: sectionName
         });
 
