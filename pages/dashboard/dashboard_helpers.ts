@@ -23,9 +23,7 @@ export default class DashboardHelpers extends BasePage {
     }
 
     async selectSectionFromDashboard(sectionName: string){
-        const dashboardSection = this.page.locator('.nav-link .nav-link-container .nav-link-label', {
-            hasText: sectionName
-        });
+        const dashboardSection = this.page.locator('[data-test-id="client"]');
 
         await dashboardSection.first().click();
     }
