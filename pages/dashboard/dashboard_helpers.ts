@@ -25,7 +25,7 @@ export default class DashboardHelpers extends BasePage {
     async selectSectionFromDashboard(sectionName: string){
         const dashboardSection = this.page.locator('[data-test-id="client"]');
 
-        await dashboardSection.first().click();
+        await dashboardSection.click();
     }
 
     async navigateToCandidateSection(){
