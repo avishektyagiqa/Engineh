@@ -20,11 +20,12 @@ test.describe("Client Matches", () => {
         const clientPage = new ClientPage(page);
         const matchesPage = new MatchesPage(page);
         const dashboard = new DashboardHelpers(page);
+        const { loginPath, credentials } = Constants.getLoginConfig(testInfo.project.name);
 
         await login.userLogin(
             "/login/858",
-            Constants.USERS.prodAutomationUser.USERNAME,
-            Constants.USERS.prodAutomationUser.PASSWORD
+            credentials.USERNAME,
+            credentials.PASSWORD
         );
 
         // Dismiss any optional dialogs after login
