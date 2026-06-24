@@ -147,7 +147,7 @@ jobs:
         continue-on-error: true
         env:
           APP_ENV: ${{matrix.env}}
-        run: npx playwright test --project="${{ matrix.env }} - chromium" --workers=5
+        run: npx playwright test --project="${{ matrix.env }} - chromium" --workers=1
 
       - name: Generate Allure Report (dev)
         if: ${{ always() }}

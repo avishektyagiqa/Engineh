@@ -46,13 +46,13 @@ test.describe("Client Matches", () => {
         );
 
         await matchesPage.validateMatchAdded(
-            "test candidate"
+            "test candidate one"
         );
 
         await matchesPage.deleteMatch();
 
         await matchesPage.validateMatchDeleted(
-            "test candidate"
+            "test candidate one"
         );
     });
 
