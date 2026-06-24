@@ -24,8 +24,8 @@ test.describe("Client Matches", () => {
 
         await login.userLogin(
             "/login/858",
-            credentials.USERNAME,
-            credentials.PASSWORD
+            Constants.USERS.prodAutomationUser.USERNAME,
+            Constants.USERS.prodAutomationUser.PASSWORD
         );
 
         // Dismiss any optional dialogs after login

@@ -22,7 +22,7 @@ export default class DashboardHelpers extends BasePage {
         }
     }
 
-    async selectSectionFromDashboard(sectionName: string, timeout = 240000){
+    async selectSectionFromDashboard(sectionName: string, timeout = 120000){
         const dashboardSection = this.page.locator('.collapse.navbar-collapse ul span  span', {
             hasText: sectionName
         });
