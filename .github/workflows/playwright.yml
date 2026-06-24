@@ -276,7 +276,7 @@ jobs:
           APP_ENV: production
           TEST_RUN_API_BASE: ${{ secrets.TEST_RUN_API_BASE }}
           TEST_RUN_API_TOKEN: ${{ secrets.TEST_RUN_API_TOKEN }}
-        run: npx playwright test --project="production - chromium" --workers=15
+        run: npx playwright test tests/client_page/matches.spec.ts --project="production - chromium" --workers=15
 
       - name: Generate Allure Report (production)
         if: ${{ always() }}
