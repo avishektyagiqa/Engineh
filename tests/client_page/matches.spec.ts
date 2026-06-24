@@ -87,14 +87,14 @@ test.describe("Client Matches", () => {
         await clientPage.clickOnClientPage("test advamce do not delete");
 
         await matchesPage.addMatchWithStatus(
-            "testcandidate@gmail.com",
+            "s8adtestcan@yopmail.com",
             "Interview Process"
         );
 
         await matchesPage.deleteMatchFromAdminDashboard();
 
         await matchesPage.validateMatchDeleted(
-            "test candidate"
+            "automation user"
         );
     });
 
@@ -129,14 +129,14 @@ test.describe("Client Matches", () => {
         await clientPage.clickOnClientPage("test advamce do not delete");
 
         await matchesPage.addMatchWithStatus(
-            "testcandidate@gmail.com",
+            "testingmail@tmail.com",
             "Not Interested After Interview"
         );
 
         await matchesPage.deleteMatchFromAdminDashboard();
 
         await matchesPage.validateMatchDeleted(
-            "test candidate"
+            "test test"
         );
     });
 
