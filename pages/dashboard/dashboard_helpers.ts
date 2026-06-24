@@ -22,11 +22,12 @@ export default class DashboardHelpers extends BasePage {
         }
     }
 
-    async selectSectionFromDashboard(sectionName: string){
+    async selectSectionFromDashboard(sectionName: string, timeout = 240000){
         const dashboardSection = this.page.locator('.collapse.navbar-collapse ul span  span', {
             hasText: sectionName
         });
 
+        await dashboardSection.first().waitFor({ state: 'visible', timeout });
         await dashboardSection.first().click();
     }
 
@@ -36,6 +37,7 @@ export default class DashboardHelpers extends BasePage {
 
     async navigateToDashboardsSection(section: string){
        await this.selectSectionFromDashboard(section);
+    
     }
 
     async clickOnSearchIcon(){
